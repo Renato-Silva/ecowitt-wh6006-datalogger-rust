@@ -1,0 +1,2 @@
+# Ecowitt WH6006 weather logger (Microchip HID, 04d8:003c): allow the logged-in user to access it.
+KERNEL=="hidraw*", ATTRS{idVendor}=="04d8", ATTRS{idProduct}=="003c", MODE="0660", TAG+="uaccess"
