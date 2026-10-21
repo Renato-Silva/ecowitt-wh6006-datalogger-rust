@@ -154,10 +154,34 @@ impl<T: Transport> Logger<T> {
         UploadServer::decode(&h, &p)
     }
 
-    pub fn set_upload_server(&mut self, u: &UploadServer) -> Result<()> {
-        let [h, p] = u.encode()?;
-        self.c.write(&h, 0x88)?;
-        self.c.write(&p, 0x88)
+    /// All four servers, read in the app's order: `09 0..3`, then `0b 0..3`.
+    pub fn upload_servers(&mut self) -> Result<Vec<UploadServer>> {
+        let mut hosts = Vec::new();
+        for sub in 0..4u8 {
+            hosts.push(self.c.request(&packet(&[0x09, sub]), 0x09, DEFAULT_TIMEOUT)?);
+        }
+        let mut all = Vec::new();
+        for (sub, h) in (0..4u8).zip(&hosts) {
+            let p = self.c.request(&packet(&[0x0b, sub]), 0x0b, DEFAULT_TIMEOUT)?;
+            all.push(UploadServer::decode(h, &p)?);
+        }
+        Ok(all)
+    }
+
+    /// The app always saves the whole table: `0a 0c` for sub 0, 1, 2, 3, each
+    /// acknowledged with 0x88. Writing a single server is not something the
+    /// firmware was ever sent, so we don't either.
+    pub fn set_upload_servers(&mut self, all: &[UploadServer]) -> Result<()> {
+        ensure!(
+            all.len() == 4 && all.iter().enumerate().all(|(i, u)| u.sub as usize == i),
+            "need the four upload servers in order"
+        );
+        for u in all {
+            let [h, p] = u.encode()?;
+            self.c.write(&h, 0x88)?;
+            self.c.write(&p, 0x88)?;
+        }
+        Ok(())
     }
 
     pub fn reset_device(&mut self) -> Result<()> {

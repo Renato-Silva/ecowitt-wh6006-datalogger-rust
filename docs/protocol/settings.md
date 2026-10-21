@@ -314,6 +314,7 @@ Reads (func 406db0): `09 00`, `09 01`, `09 02`, `09 03`, then `0b 00`, `0b 01`, 
 
 * Send order: `0a sub0, 0c sub0, 0a sub1, 0c sub1, 0a sub2, 0c sub2, 0a sub3, 0c sub3`, each expecting reply 0x88. (H)
 * "Upload type" Default/Customize (hidden combo 0x3f0) is **not** transmitted on write. (H)
+* **The Enable/Disable dropdown belongs to the www.ecowitt.net entry.** Combo 0x3f2 (member 0xe44, items "Disable upload " / "Enable upload ") is shown (`ShowWindow(5)`) together with "Add To Ecowitt" (0x43e) only when the Web combo selects "www.ecowitt.net" (UI index 0, internal 4, the entry selected when the dialog opens). For Wunderground, Weathercloud, WOW and New web it is hidden and the Password edit 0x3f7 is shown in its place (server-select handler 425650: 4257be-4257f9 for ecowitt.net; 4259af, 425b8c-425ba1, 425d50, 425ef8-425f0d hide it for the others). The fill routine stores `byte4 & 1` from each 0x0b reply into the single field obj+0xbc4 (4253e6-4253fc), so the last server read wins, and the save copies obj+0xbc4 into byte 4 of all four 0x0c packets (4262dc). The app has **no per-server enable**. Whether the firmware treats the bit as the ecowitt.net switch or as a global upload switch is unknown. (H for the UI, L for the firmware meaning)
 * There is **no 0x87 read**. The reads are 0x09/0x0b. (H)
 
 ---

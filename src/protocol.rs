@@ -97,6 +97,12 @@ impl<T: Transport> Client<T> {
         }
     }
 
+    /// Device log text received so far (the firmware forwards its modem
+    /// AT traffic and status messages as unsolicited 0x89 packets).
+    pub fn take_log(&mut self) -> Vec<String> {
+        std::mem::take(&mut self.device_log)
+    }
+
     /// Drop anything already queued (stale replies from an earlier request).
     pub fn drain(&mut self) -> Result<()> {
         while self.recv(Duration::from_millis(0))?.is_some() {}

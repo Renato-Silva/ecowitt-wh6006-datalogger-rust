@@ -21,6 +21,20 @@ sudo cp 70-wh6006.rules /etc/udev/rules.d/ && sudo udevadm control --reload && s
 
 The logger enumerates as USB `04d8:003c`. Run `wh6006 devices` to check that it is detected.
 
+## Desktop app
+
+`wh6006-gui` covers the same commands as the CLI in a window. It has tabs for live readings with auto-refresh, max/min, settings, calibration and rain counters, alarms, mobile/SMS, weather-service upload, sensors, SD card download/delete, and device status, reboot and firmware.
+
+The GUI is behind the `gui` feature, so the CLI build doesn't pull in the windowing dependencies:
+
+```sh
+cargo build --release --features gui
+sudo install -m755 target/release/wh6006-gui /usr/local/bin/
+wh6006-gui                  # --device /dev/hidrawN to pick a logger, --debug to hex-dump packets to stderr
+```
+
+It connects to the logger at startup. Settings forms only send the fields you changed, and they use the same validation as `set`. Reboot, factory reset, deleting files, overwriting rain counters and flashing firmware all ask for confirmation first.
+
 ## Usage
 
 Read-only, safe to try first:
@@ -39,6 +53,7 @@ wh6006 sensors get
 wh6006 sd list
 wh6006 sd download --all -o ~/weather    # CSV history files from the SD card
 wh6006 check-updates        # compares with Ecowitt's published firmware
+wh6006 log                  # live device log: the modem's AT commands and replies (e.g. SIM errors)
 ```
 
 Changing settings: every `set` command takes `key=value` pairs. The keys are the ones printed by the matching `get`. The tool reads the current values, changes only the keys you give, and writes the result back.
@@ -53,12 +68,15 @@ wh6006 rain day=0 week=12.4              # mm; omitted counters are left unchang
 wh6006 mobile set apn=internet sms=on phone1=+351900000000 alarm_interval_min=30
 wh6006 mobile test-sms
 wh6006 upload set wu enabled=on station_id=IXXXX password=secret interval_min=5
+wh6006 upload set custom host=wx.example.org port=80 station_id=me password=key type=php
 wh6006 sensors set 6 learn               # re-register a sensor (or give a hex ID)
 wh6006 maxmin --clear
 wh6006 sd delete 20260101.csv
 wh6006 reset                             # reboot   (--factory for factory reset)
 wh6006 firmware update WH6006CodeV1.1.39.hex
 ```
+
+Upload settings are saved as one table, as in the Windows app. The firmware turns all uploads off when `interval_min=0`, and it skips any service whose station ID or password is empty. The custom server receives Wunderground-style `GET /weatherstation/updateweatherstation.<type>?ID=…&PASSWORD=…` requests (see `docs/protocol/device-firmware.md`). Every `upload set` rewrites all four servers. `enabled` and `interval_min` are shared by all servers, and the other keys only change the server you name.
 
 Values for `set` are always metric: °C, hPa, m/s, mm and %. Use `none` to clear an alarm threshold.
 

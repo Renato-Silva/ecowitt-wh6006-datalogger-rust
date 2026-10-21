@@ -99,6 +99,14 @@ fn program_packet(cmd: u8, off: usize, chunk: &[u8]) -> crate::hid::Report {
     packet(&b)
 }
 
+/// Read an Intel HEX file that has data in the application area.
+pub fn load_hex(p: &std::path::Path) -> Result<Image> {
+    let text = std::fs::read_to_string(p).with_context(|| format!("reading {}", p.display()))?;
+    let img = parse_hex(&text)?;
+    ensure!(img.inside > 0, "the HEX file has no data in the application area (0x3000..0x2A7F8)");
+    Ok(img)
+}
+
 /// Chunk offsets used for both programming and verify, including the
 /// trailing zero-length chunk the app sends.
 fn chunks() -> impl Iterator<Item = (usize, usize)> {
